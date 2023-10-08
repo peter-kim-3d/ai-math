@@ -1,13 +1,6 @@
 import streamlit as st
 import random
-
-# Function to determine if the background color is dark
-def is_dark_color(hex_color):
-    r = int(hex_color[1:3], 16)
-    g = int(hex_color[3:5], 16)
-    b = int(hex_color[5:7], 16)
-    brightness = (r * 299 + g * 587 + b * 114) / 1000
-    return brightness < 128
+import base64
 
 text_color_markdown = "#33CC33"  # Bright Green
 equation_style = f"color: {text_color_markdown}; font-size: 3em;"
@@ -17,8 +10,8 @@ st.title('Learn Plus and Minus!')
 # Initialize the session state
 if 'number_1' not in st.session_state:
     st.session_state.number_1 = random.randint(1, 10)
-    st.session_state.number_2 = random.randint(1, 10)  # Initialize number_2 here
-    st.session_state.operation = "Plus"  # Default to "Plus"
+    st.session_state.number_2 = random.randint(1, 10)
+    st.session_state.operation = "Plus"
     st.session_state.correct = 0
     st.session_state.attempts = 0
     st.session_state.show_next_button = False
@@ -26,30 +19,29 @@ if 'number_1' not in st.session_state:
 # Option to choose between "Plus" and "Minus"
 st.session_state.operation = st.radio("Choose an operation:", ["Plus", "Minus"])
 
+# Adjust number_2 for minus operation
+if st.session_state.operation == "Minus" and st.session_state.number_2 >= st.session_state.number_1:
+    st.session_state.number_2 = random.randint(1, st.session_state.number_1)
+
 # Display the math statement in a larger font size directly below the radio button
 if st.session_state.operation == "Minus":
     st.markdown(f"<div style='{equation_style}'>{st.session_state.number_1} - {st.session_state.number_2} = ?</div>", unsafe_allow_html=True)
 else:
     st.markdown(f"<div style='{equation_style}'>{st.session_state.number_1} + {st.session_state.number_2} = ?</div>", unsafe_allow_html=True)
 
-MAX_BLOCKS = 10
+def display_blocks(count, image_path, text):
+    with open(image_path, "rb") as img_file:
+        b64_string = base64.b64encode(img_file.read()).decode()
+    blocks_html = ''.join([f"<img src='data:image/png;base64,{b64_string}' style='width:50px; margin-right:5px;' />" for _ in range(count)])
+    st.markdown(f"{text}<br>{blocks_html}", unsafe_allow_html=True)
 
 # Display number_1 blocks
-st.write(f"{st.session_state.number_1} blocks:")
-cols1 = st.columns(MAX_BLOCKS)
-for i in range(st.session_state.number_1):
-    cols1[i].image('blue-square-png-13.png', width=50, use_column_width=False)
+display_blocks(st.session_state.number_1, 'blue-square-png-13.png', f"{st.session_state.number_1} blocks:")
 
 if st.session_state.operation == "Minus":
-    st.write(f"Minus {st.session_state.number_2} blocks:")
-    cols2 = st.columns(MAX_BLOCKS)
-    for i in range(st.session_state.number_2):
-        cols2[i].image('red-square-png-14.png', width=50, use_column_width=False)
-else:  # For the "Plus" operation
-    st.write(f"Plus {st.session_state.number_2} blocks:")
-    cols3 = st.columns(MAX_BLOCKS)
-    for i in range(st.session_state.number_2):
-        cols3[i].image('blue-square-png-13.png', width=50, use_column_width=False)
+    display_blocks(st.session_state.number_2, 'red-square-png-14.png', f"Minus {st.session_state.number_2} blocks:")
+else:
+    display_blocks(st.session_state.number_2, 'blue-square-png-13.png', f"Plus {st.session_state.number_2} blocks:")
 
 # Get user answer
 answer = st.number_input('What is the answer?', value=0, step=1, min_value=0)
@@ -77,6 +69,6 @@ if st.session_state.show_next_button:
         else:
             st.session_state.number_2 = random.randint(1, 10)
         st.session_state.show_next_button = False
-        st.experimental_rerun()  # Force the app to re-run
+        st.experimental_rerun()
 
 st.write(f"You have answered correctly {st.session_state.correct} out of {st.session_state.attempts} attempts.")
